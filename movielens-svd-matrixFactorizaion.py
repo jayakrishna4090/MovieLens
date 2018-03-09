@@ -12,6 +12,42 @@ import numpy as np
 movie=pd.read_csv("D:\\ML\\MovieLens_Datasets\\ml-movies.csv")
 rating=pd.read_csv("D:\\ML\\MovieLens_Datasets\\ml-ratings.csv")
 
+
+year=[]
+import re
+for each in movie['title']:
+    if not re.findall(r"\([0-9]{4}\)", each):
+        year.append(np.NaN)
+    else:
+        year.append(int(re.findall(r"\([0-9]{4}\)", each)[0][1:5]))
+movie['year']=year
+
+
+for each in movie['genres']:
+    if each.count("|")==0:
+        movie.loc[movie['genres']==each,'genre1']=each
+    else:
+        for var in range(0,(each.count("|")+1)):
+            movie.loc[movie['genres']==each,'genre'+str(var+1)]=each.split("|")[var]
+
+genlist=[]
+for each in movie.columns:
+    if re.findall(r"genre[0-9]",each):
+        genlist.append(each)
+total_genre=list(pd.unique(movie[genlist].values.ravel('K')))
+total_genre.remove(np.nan)
+total_genre.sort
+len(total_genre)
+
+for each in total_genre:
+    for var in genlist:
+        #movie.loc[movie[var]!=each,each]=0
+        movie.loc[movie[var]==each,each]=1
+            
+movie=movie.rename(columns={'(no genres listed)':'Undefined'})
+
+movie.drop(genlist,axis=1,inplace=True)
+
 R_df = rating.pivot(index = 'userId', columns ='movieId', values = 'rating').fillna(0)
 R_df.head()
 
@@ -40,8 +76,8 @@ def recommend_movies(predictions_df, userID, movies_df, original_ratings_df, num
                      sort_values(['rating'], ascending=False)
                  )
 
-    #print ('User {0} has already rated {1} movies.'.format(userID, user_full.shape[0]))
-    #print ('Recommending the highest {0} predicted ratings movies not already rated.'.format(num_recommendations))
+    print ('User {0} has already rated {1} movies.'.format(userID, user_full.shape[0]))
+    print ('Recommending the highest {0} predicted ratings movies not already rated.'.format(num_recommendations))
     
     # Recommend the highest predicted rating movies that the user hasn't seen yet.
     recommendations = (movies_df[~movies_df['movieId'].isin(user_full['movieId'])].
