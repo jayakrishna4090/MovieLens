@@ -2,17 +2,18 @@
 """
 Created on Tue Mar  6 16:21:49 2018
 
-@author: jthatha
+@author: jayakrishna
 """
 
-
+#importing the required libraries for caliculation & transformations
 import pandas as pd
 import numpy as np
 
+#reading the 2 files from into dataframes
 movie=pd.read_csv("D:\\ML\\MovieLens_Datasets\\ml-movies.csv")
 rating=pd.read_csv("D:\\ML\\MovieLens_Datasets\\ml-ratings.csv")
 
-
+#Extracting the year value from the title
 year=[]
 import re
 for each in movie['title']:
@@ -22,7 +23,7 @@ for each in movie['title']:
         year.append(int(re.findall(r"\([0-9]{4}\)", each)[0][1:5]))
 movie['year']=year
 
-
+#extracting the different genres from the genre and creating n different columns
 for each in movie['genres']:
     if each.count("|")==0:
         movie.loc[movie['genres']==each,'genre1']=each
@@ -30,6 +31,7 @@ for each in movie['genres']:
         for var in range(0,(each.count("|")+1)):
             movie.loc[movie['genres']==each,'genre'+str(var+1)]=each.split("|")[var]
 
+#Extracting unique genre from the data
 genlist=[]
 for each in movie.columns:
     if re.findall(r"genre[0-9]",each):
@@ -39,15 +41,23 @@ total_genre.remove(np.nan)
 total_genre.sort
 len(total_genre)
 
+
+#making the genre columns into boolean datatype
 for each in total_genre:
     for var in genlist:
-        #movie.loc[movie[var]!=each,each]=0
-        movie.loc[movie[var]==each,each]=1
-            
+        movie.loc[movie[var]!=each,each]=0
+
+
+for each in total_genre:
+    for var in genlist:
+        movie.loc[movie[var]==each,each]=1 
+
+           
 movie=movie.rename(columns={'(no genres listed)':'Undefined'})
 
 movie.drop(genlist,axis=1,inplace=True)
 
+#creating a dataframe for the user item collaboration
 R_df = rating.pivot(index = 'userId', columns ='movieId', values = 'rating').fillna(0)
 R_df.head()
 
@@ -55,7 +65,7 @@ R = R_df.as_matrix()
 user_ratings_mean = np.mean(R, axis = 1)
 R_demeaned = R - user_ratings_mean.reshape(-1, 1)
 
-
+#importing svd for the computing matrix factorization using single value decomposition
 from scipy.sparse.linalg import svds
 U, sigma, Vt = svds(R_demeaned, k = 50)
 
@@ -91,4 +101,5 @@ def recommend_movies(predictions_df, userID, movies_df, original_ratings_df, num
 
     return user_full, recommendations
 
+#calling the required user for the top 10 recommendations
 already_rated, predictions = recommend_movies(preds_df, 1, movie, rating, 10)
